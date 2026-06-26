@@ -1,39 +1,28 @@
-# Environment / secrets — NEVER commit these
+# Environment / secrets — NEVER commit
 .env
 *.env
 
-# Output files — generated at runtime, not source code
-proximity_output/
+# Project Master and config — internal company data
+data/*
+!data/.gitkeep
+
+# Output files — generated at runtime
+proximity_output/*
+!proximity_output/.gitkeep
 
 # Python
 __pycache__/
 *.py[cod]
 *.pyo
-*.pyd
-.Python
-*.egg
-*.egg-info/
-dist/
-build/
-eggs/
-parts/
-var/
-sdist/
-develop-eggs/
-.installed.cfg
-lib/
-lib64/
 
 # Virtual environments
 .venv/
 venv/
 env/
-ENV/
 
 # IDE / OS
 .vscode/
 .idea/
 *.swp
-*.swo
 .DS_Store
 Thumbs.db
