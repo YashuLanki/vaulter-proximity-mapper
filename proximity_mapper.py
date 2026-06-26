@@ -431,7 +431,7 @@ def parse_google_result(r, origin, category_label, icon):
         "longitude":      dest_lon,
         "distance_miles": dist,
         "direction":      direction,
-        "distance_label": f"{direction} — {dist} mi",
+        "distance_label": f"{direction} - {dist} mi",
         "rating":         r.get("rating", ""),
         "source":         "Google Places",
         "notes":          ", ".join(r.get("types", [])),
@@ -517,7 +517,7 @@ def parse_osm_result(el, origin, category_label, icon):
         "longitude":      dest_lon,
         "distance_miles": dist,
         "direction":      direction,
-        "distance_label": f"{direction} — {dist} mi",
+        "distance_label": f"{direction} - {dist} mi",
         "rating":         "",
         "source":         "OpenStreetMap",
         "notes":          "",
@@ -531,10 +531,10 @@ def build_geojson(records, property_name, property_coords):
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [property_coords[1], property_coords[0]]},
         "properties": {
-            "name":           f"⭐ {property_name} (Subject)",
+            "name":           f"[Subject] {property_name}",
             "category":       "Subject Property",
             "distance_miles": 0,
-            "direction":      "—",
+            "direction":      "N/A",
             "distance_label": "Subject Property",
             "source":         "Vaulter Project Master",
             "marker-color":   "#FFD700",
@@ -564,17 +564,17 @@ def build_geojson(records, property_name, property_coords):
 def export_csv(records, property_name, property_coords, filepath):
     fieldnames = ["name","category","address","latitude","longitude",
                   "distance_miles","direction","distance_label","rating","source","notes"]
-    with open(filepath, "w", newline="", encoding="utf-8") as f:
+    with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerow({
-            "name":           f"⭐ {property_name} (Subject)",
+            "name":           f"[Subject] {property_name}",
             "category":       "Subject Property",
             "address":        "",
             "latitude":       property_coords[0],
             "longitude":      property_coords[1],
             "distance_miles": 0,
-            "direction":      "—",
+            "direction":      "N/A",
             "distance_label": "Subject Property",
             "rating":         "",
             "source":         "Vaulter Project Master",
