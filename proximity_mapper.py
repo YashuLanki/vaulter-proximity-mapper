@@ -250,66 +250,24 @@ def load_project_master() -> list:
 # ---------------------------------------------------------------------------
 # CONFIG READER
 # ---------------------------------------------------------------------------
-DEFAULT_CATEGORIES = [
-    {
-        "label": "Retail & Big Box",
-        "icon": "🛒",
-        "color": "#E74C3C",
-        "google_types": ["supermarket", "department_store", "shopping_mall",
-                         "home_goods_store", "hardware_store", "warehouse_store"],
-    },
-    {
-        "label": "Hospitality",
-        "icon": "🏨",
-        "color": "#9B59B6",
-        "google_types": ["lodging"],
-    },
-    {
-        "label": "Industrial & Logistics",
-        "icon": "🏭",
-        "color": "#F39C12",
-        "google_types": ["storage", "moving_company"],
-    },
-    {
-        "label": "Healthcare",
-        "icon": "🏥",
-        "color": "#2ECC71",
-        "google_types": ["hospital", "doctor", "pharmacy", "health"],
-    },
-    {
-        "label": "School & University",
-        "icon": "🎓",
-        "color": "#3498DB",
-        "google_types": ["school", "university"],
-    },
-    {
-        "label": "Government & Civic",
-        "icon": "🏛️",
-        "color": "#5D6D7E",
-        "google_types": ["city_hall", "local_government_office"],
-    },
-    {
-        "label": "Restaurant & QSR",
-        "icon": "🍔",
-        "color": "#1ABC9C",
-        "google_types": ["restaurant", "meal_takeaway", "cafe"],
-    },
-]
-
 def load_categories() -> list:
-    """Load categories from data/config.json, or fall back to defaults."""
-    if os.path.exists(CONFIG_PATH):
-        try:
-            with open(CONFIG_PATH, encoding="utf-8") as f:
-                data = json.load(f)
-            cats = data.get("search_categories", [])
-            if cats:
-                return cats
-        except Exception as e:
-            print(f"  ⚠ Could not read config.json: {e} — using defaults")
-    else:
-        print(f"  ℹ No config.json found in data/ — using built-in defaults")
-    return DEFAULT_CATEGORIES
+    """Load categories from data/config.json. Exits if file is missing or invalid."""
+    if not os.path.exists(CONFIG_PATH):
+        print(f"\n  ✗ config.json not found at {CONFIG_PATH}")
+        print(f"    Add data/config.json to define your search categories.")
+        print(f"    See the README for the expected format.")
+        sys.exit(1)
+    try:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        cats = data.get("search_categories", [])
+        if not cats:
+            print(f"  ✗ config.json has no search_categories defined.")
+            sys.exit(1)
+        return cats
+    except Exception as e:
+        print(f"  ✗ Could not read config.json: {e}")
+        sys.exit(1)
 
 # ---------------------------------------------------------------------------
 # DIRECTION HELPERS
