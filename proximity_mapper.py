@@ -564,7 +564,7 @@ def build_geojson(records, property_name, property_coords):
 def export_csv(records, property_name, property_coords, filepath):
     fieldnames = ["name","category","address","latitude","longitude",
                   "distance_miles","direction","distance_label","rating","source","notes"]
-    with open(filepath, "w", newline="", encoding="utf-8-sig") as f:
+    with open(filepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerow({
