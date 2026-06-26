@@ -1,188 +1,155 @@
-# Vaulter Proximity Mapper
+# Proximity Mapper
+**Automated employer & business proximity research for real estate portfolio properties.**
 
-> Automated employer & business proximity research for Vaulter Real Estate Investments portfolio properties.
-
-Instead of manually researching and measuring distances to nearby businesses for each due diligence report, this tool does it in seconds — and exports a GeoJSON you drag straight into [Felt](https://felt.com).
+Given any property from your portfolio, this tool automatically finds nearby key employers, anchors, and businesses — computing the exact distance and direction from the site — and exports a GeoJSON you can drag straight into [Felt](https://felt.com) or a CSV for due diligence reports.
 
 ---
 
 ## What It Does
 
-1. Takes any property name from the Vaulter Project Master
-2. Geocodes the property to lat/lon
+1. Reads your property portfolio from a CSV, Excel, or PDF file (no hardcoding)
+2. Geocodes each property via Google Maps API
 3. Searches **Google Places** (or **OpenStreetMap** as a free fallback) for businesses within your chosen radius
 4. Computes **distance in miles** and **cardinal direction** from the property for every result
-5. Exports a **GeoJSON** (drag into Felt) and a **CSV** (paste into DD reports)
+5. Exports a **GeoJSON** (drag into Felt) and a **CSV** (paste into reports)
 
-**Categories searched automatically:**
+**17 search categories — all configurable via `data/config.json`:**
 
-| Icon | Category | Examples |
-|------|----------|---------|
-| 🛒 | Retail Anchor | Costco, HEB, Home Depot, Target, Walmart |
-| 🏨 | Hospitality | TownePlace Suites, Holiday Inn, Best Western |
-| 🏭 | Industrial / Logistics | Amazon DC, Goodyear, warehouse parks |
-| 🏥 | Healthcare | Hospitals, clinics, pharmacies |
-| 🏫 | School / Civic | School campuses, libraries, civic centers |
-| 🍔 | Restaurant / QSR | Chick-fil-A, Whataburger, Starbucks, sit-down dining |
-
----
-
-## Demo Output
-
-```
-============================================================
-  Vaulter Proximity Mapper
-  Property : Pacific & Pinson - Forney
-  Radius   : 3.0 miles  (4,828 m)
-  Source   : OpenStreetMap (Overpass)
-============================================================
-
-  Geocoding: Pacific Ave & Pinson Rd, Forney, TX 75126 ... ✓
-
-  Searching: 🛒  Retail Anchor ...  8 found
-  Searching: 🏨  Hospitality ...  4 found
-  Searching: 🏭  Industrial / Logistics ...  6 found
-  Searching: 🏥  Healthcare ...  3 found
-  Searching: 🏫  School / Civic ...  7 found
-  Searching: 🍔  Restaurant / QSR ...  14 found
-
-  ──────────────────────────────────────────────────────────
-  PROXIMITY SUMMARY — Pacific & Pinson - Forney
-  ──────────────────────────────────────────────────────────
-
-  🏥  HEALTHCARE  (3 places)
-    Texas Health Forney Hospital       SSE — 1.45 mi
-    ...
-
-  🏫  SCHOOL / CIVIC  (7 places)
-    Wilson Elementary                  NNE — 0.45 mi
-    Keith Bell Opportunity Central     ENE — 0.60 mi
-    ...
-
-  EXPORTS
-  GeoJSON → proximity_output/Pacific_and_Pinson_-_Forney_20260625_1430.geojson
-  CSV     → proximity_output/Pacific_and_Pinson_-_Forney_20260625_1430.csv
-```
+| Icon | Category |
+|------|----------|
+| 🛒 | Big Box Retail (Costco, Walmart, Target, Home Depot) |
+| 🏬 | Shopping Mall & Outlets |
+| 🏨 | Hospitality (hotels, motels, extended stay) |
+| 🏭 | Industrial & Logistics (warehouses, distribution centers) |
+| 🏢 | Major Corporate HQ |
+| 💻 | Technology & Innovation (data centers, tech parks) |
+| 🏥 | Healthcare (hospitals, clinics, pharmacies) |
+| 🎓 | School & University |
+| 🏛️ | Government & Civic (city hall, courthouse, post office) |
+| 🪖 | Military Base |
+| 🏟️ | Sports & Entertainment (stadiums, arenas, casinos) |
+| 🍔 | Restaurant & QSR |
+| 🛍️ | Grocery & Specialty Food |
+| ⛽ | Gas & Convenience (truck stops, travel centers) |
+| 🏦 | Financial Services |
+| 🌳 | Parks & Recreation |
+| 🛣️ | Transportation & Infrastructure (airports, transit, intermodal) |
 
 ---
 
 ## Setup
 
 ### 1. Clone the repo
-
 ```bash
-git clone https://github.com/YOUR_USERNAME/vaulter-proximity-mapper.git
-cd vaulter-proximity-mapper
+git clone https://github.com/YOUR_USERNAME/proximity-mapper.git
+cd proximity-mapper
 ```
 
 ### 2. Install dependencies
-
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. (Optional but recommended) Add a Google Places API key
+### 3. Add your data files to `data/`
+```
+data/
+├── Your_Project_Master.csv     ← portfolio CSV/Excel/PDF export
+└── config.json                 ← search categories (edit to customize)
+```
 
-Google Places returns richer data than OpenStreetMap. OSM is the automatic free fallback if no key is set.
+The tool auto-detects any CSV, Excel, or PDF in `data/` that contains your property list. It expects columns: `Project Name` and `State`.
 
+### 4. Add your Google Places API key (optional but recommended)
 Copy the example env file and fill in your key:
-
 ```bash
 cp .env.example .env
-# then edit .env and paste your key
 ```
+Edit `.env`:
+```
+GOOGLE_PLACES_API_KEY=your_key_here
+```
+OpenStreetMap is used automatically as a free fallback if no key is set.
 
 To get a Google Places API key:
 1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Enable the **Places API**
+2. Enable **Places API** and **Geocoding API**
 3. Create an API key under **Credentials**
 
 ---
 
 ## Usage
 
-### Interactive mode (easiest)
-
+### Interactive mode
 ```bash
 python proximity_mapper.py
 ```
 
-You'll see a numbered list of all portfolio properties. Pick one, enter a radius, done.
-
 ### Command-line mode
-
 ```bash
 # Default 3-mile radius
-python proximity_mapper.py --property "Pacific & Pinson - Forney"
+python proximity_mapper.py --property "My Property Name"
 
 # Custom radius
-python proximity_mapper.py --property "Pacific & Pinson - Forney" --radius 5
+python proximity_mapper.py --property "My Property Name" --radius 5
 
-# Partial name match works
-python proximity_mapper.py --property "Forney"
-
-# List all registered properties
+# List all properties loaded from your file
 python proximity_mapper.py --list-properties
 ```
 
 ---
 
-## Loading Results into Felt
-
-1. Open your Felt map at [felt.com](https://felt.com)
-2. Click **Upload** in the top toolbar
-3. Drag the `.geojson` file from `proximity_output/` onto the map
-4. Each category is pre-colored for easy reading:
-
-| Category | Color |
-|----------|-------|
-| 🛒 Retail Anchor | Red |
-| 🏨 Hospitality | Purple |
-| 🏭 Industrial / Logistics | Orange |
-| 🏥 Healthcare | Green |
-| 🏫 School / Civic | Blue |
-| 🍔 Restaurant / QSR | Teal |
-| ⭐ Subject Property | Pin |
-
----
-
-## Output Files
+## Output
 
 All exports land in `proximity_output/` (git-ignored):
 
 | File | Use |
 |------|-----|
 | `PropertyName_YYYYMMDD_HHMM.geojson` | Drag into Felt |
-| `PropertyName_YYYYMMDD_HHMM.csv` | Paste distances into DD report |
+| `PropertyName_YYYYMMDD_HHMM.csv` | Paste into due diligence report |
 
-The `distance_label` CSV column is pre-formatted (e.g. `SSE — 2.1 mi`) so it pastes directly into DD memo proximity tables.
+The `distance_label` CSV column is pre-formatted (e.g. `SSE — 2.1 mi`) for direct use in reports.
+
+### Loading into Felt
+1. Open your map at [felt.com](https://felt.com)
+2. Click **Upload** in the top toolbar
+3. Drag the `.geojson` file onto the map — each category has its own color
 
 ---
 
-## Adding Properties
+## Customizing Categories
 
-Edit `PROPERTY_REGISTRY` at the top of `proximity_mapper.py`:
+Edit `data/config.json` to add, remove, or change search categories — no code changes needed:
 
-```python
-PROPERTY_REGISTRY = {
-    "My New Property": "123 Main St, City, ST 12345",
-    # ...
+```json
+{
+  "search_categories": [
+    {
+      "label": "My Custom Category",
+      "icon": "🏗️",
+      "color": "#E74C3C",
+      "google_types": ["point_of_interest"]
+    }
+  ]
 }
 ```
 
-Use the most specific address available. City + State works as a fallback.
+Google Place types reference: [developers.google.com/maps/documentation/places/web-service/supported_types](https://developers.google.com/maps/documentation/places/web-service/supported_types)
 
 ---
 
 ## Project Structure
 
 ```
-vaulter-proximity-mapper/
-├── proximity_mapper.py     # Main script
-├── requirements.txt        # Python dependencies
-├── .env.example            # API key template
-├── .gitignore              # Excludes outputs + secrets
-└── README.md               # This file
+proximity-mapper/
+├── proximity_mapper.py     ← main script
+├── requirements.txt        ← pip install -r requirements.txt
+├── .env.example            ← API key template (copy to .env)
+├── .gitignore              ← keeps data/ and outputs/ out of git
+├── README.md
+├── data/                   ← git-ignored, add your files here
+│   ├── Your_Portfolio.csv
+│   └── config.json
+└── proximity_output/       ← git-ignored, generated exports land here
 ```
 
 ---
@@ -190,27 +157,27 @@ vaulter-proximity-mapper/
 ## How It Works
 
 ```
-Property Name
-     │
-     ▼
-PROPERTY_REGISTRY  →  address string
-     │
-     ▼
-Geocoder (Nominatim / Google)  →  (lat, lon)
-     │
-     ▼
-For each of 6 categories:
-  Google Places API  (if GOOGLE_PLACES_API_KEY is set)
-  └── OR OSM Overpass  (free fallback, no key needed)
-     │
-     ▼
-Distance + Direction computed for every result
-     │
-     ▼
-De-duplicate, sort by distance
-     │
-     ├──▶  GeoJSON  →  Felt
-     └──▶  CSV      →  DD Report
+Portfolio File (CSV/Excel/PDF)
+         │
+         ▼
+   Parse properties → name + state
+         │
+         ▼
+   Google Geocoding API  →  (lat, lon)
+         │
+         ▼
+   For each of 17 categories:
+     Google Places API  (if key set)
+     └── OR OSM Overpass  (free fallback)
+         │
+         ▼
+   Distance + Direction computed per result
+         │
+         ▼
+   De-duplicate, sort by distance
+         │
+         ├──▶  GeoJSON  →  Felt
+         └──▶  CSV      →  Report
 ```
 
 ---
@@ -218,7 +185,10 @@ De-duplicate, sort by distance
 ## Requirements
 
 - Python 3.8+
-- `geopy`
-- `requests`
+- See `requirements.txt`
 
-See `requirements.txt`.
+---
+
+## License
+
+MIT
