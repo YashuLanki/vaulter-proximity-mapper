@@ -556,6 +556,182 @@ def export_csv(records, property_name, property_coords, filepath):
         for r in sorted(records, key=lambda x: x["distance_miles"]):
             writer.writerow(r)
 
+
+# ---------------------------------------------------------------------------
+# HIGHWAY & ROAD LOOKUP
+# ---------------------------------------------------------------------------
+ROAD_TYPE_LABELS = {
+    "route":               "Highway / Interstate",
+    "sublocality":         None,
+    "locality":            None,
+    "administrative_area_level_1": None,
+    "administrative_area_level_2": None,
+    "country":             None,
+    "postal_code":         None,
+    "intersection":        None,
+}
+
+ROAD_PREFIXES = {
+    "I-":   "Interstate",
+    "US-":  "US Highway",
+    "US ":  "US Highway",
+    "SR-":  "State Route",
+    "SH-":  "State Highway",
+    "TX-":  "State Highway",
+    "AZ-":  "State Highway",
+    "CA-":  "State Highway",
+    "CO-":  "State Highway",
+    "NM-":  "State Highway",
+    "FM ":  "Farm to Market Road",
+    "FM-":  "Farm to Market Road",
+    "CR ":  "County Road",
+    "CR-":  "County Road",
+    "HWY ": "Highway",
+    "Hwy ": "Highway",
+}
+
+def classify_road(name: str) -> str:
+    """Return a human-readable road type label."""
+    for prefix, label in ROAD_PREFIXES.items():
+        if name.startswith(prefix):
+            return label
+    if any(x in name for x in ["Interstate", "Freeway", "Expressway"]):
+        return "Interstate / Freeway"
+    if any(x in name for x in ["Highway", "Hwy"]):
+        return "Highway"
+    if "Farm" in name or "FM" in name:
+        return "Farm to Market Road"
+    if "County" in name or " CR " in name:
+        return "County Road"
+    return "Road"
+
+def lookup_nearby_highways(lat: float, lon: float, api_key: str,
+                           radius_miles: float, color: str = "#717D7E") -> list:
+    """
+    Use Google Geocoding reverse lookup + nearby Places search
+    to find major roads, highways, and interstates near the property.
+    Returns a list of normalized records ready for CSV/GeoJSON export.
+    """
+    records = []
+    seen_names = set()
+    icon = "🛣️"
+    category = "Transportation & Infrastructure"
+
+    # ── Step 1: Reverse geocode the property coords ───────────────
+    # This reliably returns the road the property sits on
+    try:
+        resp = requests.get(
+            "https://maps.googleapis.com/maps/api/geocode/json",
+            params={"latlng": f"{lat},{lon}", "key": api_key},
+            timeout=10,
+        )
+        data = resp.json()
+        if data.get("status") == "OK":
+            for result in data.get("results", []):
+                types = result.get("types", [])
+                if "route" in types:
+                    name = result.get("address_components", [{}])[0].get("long_name", "")
+                    if not name or name in seen_names:
+                        continue
+                    seen_names.add(name)
+                    loc = result.get("geometry", {}).get("location", {})
+                    dlat = loc.get("lat", lat)
+                    dlon = loc.get("lng", lon)
+                    dist, direction = distance_and_direction((lat, lon), (dlat, dlon))
+                    road_type = classify_road(name)
+                    records.append({
+                        "name":           name,
+                        "category":       category,
+                        "icon":           icon,
+                        "color":          color,
+                        "address":        result.get("formatted_address", ""),
+                        "latitude":       dlat,
+                        "longitude":      dlon,
+                        "distance_miles": dist,
+                        "direction":      direction,
+                        "distance_label": f"{direction} - {dist} mi",
+                        "rating":         "",
+                        "source":         "Google Geocoding",
+                        "notes":          road_type,
+                    })
+    except Exception as e:
+        print(f"\n  ⚠ Highway reverse geocode error: {e}")
+
+    # ── Step 2: Sample points around the property to catch nearby highways ──
+    # Check N, S, E, W at ~1 mile intervals to catch parallel highways
+    import math as _math
+    radius_m = int(radius_miles * 1609.34)
+    offsets = [
+        (0.01, 0),    # ~0.7mi North
+        (-0.01, 0),   # ~0.7mi South
+        (0, 0.015),   # ~0.7mi East
+        (0, -0.015),  # ~0.7mi West
+        (0.02, 0),    # ~1.4mi North
+        (-0.02, 0),   # ~1.4mi South
+        (0, 0.025),   # ~1.4mi East
+        (0, -0.025),  # ~1.4mi West
+    ]
+
+    for dlat_off, dlon_off in offsets:
+        slat = lat + dlat_off
+        slon = lon + dlon_off
+        dist_to_sample, _ = distance_and_direction((lat, lon), (slat, slon))
+        if dist_to_sample > radius_miles:
+            continue
+        try:
+            resp = requests.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"latlng": f"{slat},{slon}", "key": api_key},
+                timeout=8,
+            )
+            data = resp.json()
+            if data.get("status") != "OK":
+                continue
+            for result in data.get("results", []):
+                if "route" not in result.get("types", []):
+                    continue
+                name = result.get("address_components", [{}])[0].get("long_name", "")
+                if not name or name in seen_names:
+                    continue
+                # Only keep roads that look like highways/interstates
+                road_type = classify_road(name)
+                if road_type in ("Road",):
+                    # Skip generic local roads
+                    full_name = result.get("formatted_address", "")
+                    if not any(x in full_name for x in
+                               ["Highway", "Hwy", "Interstate", "Freeway",
+                                "Farm", "FM ", "US-", "I-", "SR-", "TX-",
+                                "AZ-", "CA-", "CO-", "NM-"]):
+                        continue
+                seen_names.add(name)
+                loc = result.get("geometry", {}).get("location", {})
+                dlat2 = loc.get("lat", slat)
+                dlon2 = loc.get("lng", slon)
+                dist, direction = distance_and_direction((lat, lon), (dlat2, dlon2))
+                if dist > radius_miles:
+                    continue
+                records.append({
+                    "name":           name,
+                    "category":       category,
+                    "icon":           icon,
+                    "color":          color,
+                    "address":        result.get("formatted_address", ""),
+                    "latitude":       dlat2,
+                    "longitude":      dlon2,
+                    "distance_miles": dist,
+                    "direction":      direction,
+                    "distance_label": f"{direction} - {dist} mi",
+                    "rating":         "",
+                    "source":         "Google Geocoding",
+                    "notes":          road_type,
+                })
+            time.sleep(0.1)
+        except Exception:
+            continue
+
+    records.sort(key=lambda x: x["distance_miles"])
+    return records
+
 # ---------------------------------------------------------------------------
 # MAIN RUNNER
 # ---------------------------------------------------------------------------
@@ -616,6 +792,21 @@ def run(property_name: str, properties: list, categories: list, radius_miles: fl
 
         print(f"{len(parsed)} found")
         all_records.extend(parsed)
+
+    # ── Highway & road lookup ─────────────────────────────────────
+    if use_google:
+        # Find the Transportation & Infrastructure category color
+        transport_color = "#717D7E"
+        for cat in categories:
+            if "transport" in cat["label"].lower() or "infrastructure" in cat["label"].lower():
+                transport_color = cat.get("color", "#717D7E")
+                break
+        print(f"\n  Searching: 🛣️  Highways & Roads ...", end=" ", flush=True)
+        highway_records = lookup_nearby_highways(
+            coords[0], coords[1], api_key, radius_miles, transport_color
+        )
+        print(f"{len(highway_records)} found")
+        all_records.extend(highway_records)
 
     # De-duplicate by (name, rounded lat/lon)
     seen, deduped = set(), []
