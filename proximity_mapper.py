@@ -51,59 +51,54 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # VAULTER PROJECT MASTER — property registry
 # Add/remove entries here as the portfolio changes.
-#
-# Two formats supported:
-#   "Property Name": "Geocodable address string"
-#   "Property Name": (lat, lon)      ← hardcoded coords (instant, no geocoding)
-#
-# Hardcoded coords are used immediately with no network call needed.
-# Use them whenever geocoding fails or returns a wrong location.
+# Format: "Display Name": "Geocodable address string"
+# Google Geocoding API resolves each address to lat/lon at runtime.
 # ---------------------------------------------------------------------------
 PROPERTY_REGISTRY = {
     # Texas
-    "Pacific & Pinson - Forney":      (32.7576, -96.4697),   # Pacific Ave & Pinson Rd
-    "Long Branch (Wilson 155)":        (32.7480, -96.4710),   # Wilson 155, Forney TX
-    "Horseshoe Bay Lots":              (30.5418, -98.3613),   # Horseshoe Bay, TX
-    "Triad":                           (32.7476, -96.4610),   # Forney, TX
+    "Pacific & Pinson - Forney":      "Pacific Ave & Pinson Rd, Forney, TX 75126",
+    "Long Branch (Wilson 155)":        "Wilson Rd, Forney, TX 75126",
+    "Horseshoe Bay Lots":              "Horseshoe Bay, TX 78657",
+    "Triad":                           "Forney, TX 75126",
 
     # Arizona
-    "Rita Ranch":                      (32.1168, -110.7538),  # Rita Ranch, Tucson
-    "Cabazon":                         (33.9195, -113.5424),  # Cabazon, AZ
-    "Eloy 310 (Interlink 8/10)":       (32.7476, -111.5549),  # Eloy, AZ
-    "Kirby Hughes & Luckett":          (33.2800, -112.0300),  # Maricopa area, AZ
-    "Picacho Crossing Ph II":          (32.6438, -111.4007),  # Picacho, AZ
-    "Magic Ranch 10":                  (33.0317, -111.3873),  # Florence, AZ
-    "Magic Ranch 80":                  (33.0317, -111.3873),  # Florence, AZ
-    "Mesquite Trails":                 (33.3942, -111.8485),  # Chandler area, AZ
-    "Heartland 53":                    (33.3100, -111.9200),  # Maricopa area, AZ
-    "Lucky Hunt":                      (33.0581, -112.0476),  # Maricopa, AZ
-    "Marabella":                       (33.4353, -112.3773),  # Goodyear, AZ
-    "Mountain View Ranch":             (33.3800, -111.6500),  # Queen Creek area, AZ
-    "Hidden Canyon":                   (33.7500, -112.2000),  # Peoria area, AZ
+    "Rita Ranch":                      "Rita Ranch, Tucson, AZ 85747",
+    "Cabazon":                         "Cabazon, AZ 85328",
+    "Eloy 310 (Interlink 8/10)":       "Eloy, AZ 85131",
+    "Kirby Hughes & Luckett":          "Maricopa, AZ 85138",
+    "Picacho Crossing Ph II":          "Picacho, AZ 85241",
+    "Magic Ranch 10":                  "Florence, AZ 85132",
+    "Magic Ranch 80":                  "Florence, AZ 85132",
+    "Mesquite Trails":                 "Queen Creek, AZ 85142",
+    "Heartland 53":                    "Maricopa, AZ 85138",
+    "Lucky Hunt":                      "Maricopa, AZ 85138",
+    "Marabella":                       "Goodyear, AZ 85395",
+    "Mountain View Ranch":             "Queen Creek, AZ 85142",
+    "Hidden Canyon":                   "Peoria, AZ 85383",
 
     # California
-    "Banning":                         (33.9253, -116.8761),  # Banning, CA
-    "Affresco East":                   (34.4283, -117.3009),  # Hesperia, CA
-    "Affresco West":                   (34.4283, -117.3309),  # Hesperia, CA
-    "Apple Valley & Ohna":             (34.5008, -117.1858),  # Apple Valley, CA
-    "Auburn & Verbena":                (34.4500, -117.3100),  # Hesperia, CA
-    "Fuchsia & Dos Palmas":            (33.9611, -116.5017),  # Desert Hot Springs, CA
-    "Hook & Cobalt/S&C":               (34.4100, -117.2800),  # Hesperia, CA
-    "Hopland & Cordova":               (38.9724, -123.1183),  # Hopland, CA
-    "Kemper Campbell":                 (34.5362, -117.2928),  # Victorville, CA
-    "South 20E":                       (34.1355, -116.0541),  # Twentynine Palms, CA
-    "Antelope & Ellis":                (34.6868, -118.1542),  # Lancaster, CA
-    "Griffin Ranch":                   (33.6631, -116.2837),  # La Quinta, CA
-    "Wilson & Florida":                (34.4400, -117.3000),  # Hesperia, CA
-    "Rosamond & 40th St.":             (34.8633, -118.1598),  # Rosamond, CA
-    "Calhoun 29":                      (34.4200, -117.3500),  # Hesperia, CA
+    "Banning":                         "Banning, CA 92220",
+    "Affresco East":                   "Hesperia, CA 92345",
+    "Affresco West":                   "Hesperia, CA 92345",
+    "Apple Valley & Ohna":             "Apple Valley, CA 92307",
+    "Auburn & Verbena":                "Hesperia, CA 92345",
+    "Fuchsia & Dos Palmas":            "Desert Hot Springs, CA 92240",
+    "Hook & Cobalt/S&C":               "Hesperia, CA 92345",
+    "Hopland & Cordova":               "Hopland, CA 95449",
+    "Kemper Campbell":                 "Victorville, CA 92395",
+    "South 20E":                       "Twentynine Palms, CA 92277",
+    "Antelope & Ellis":                "Lancaster, CA 93536",
+    "Griffin Ranch":                   "La Quinta, CA 92253",
+    "Wilson & Florida":                "Hesperia, CA 92345",
+    "Rosamond & 40th St.":             "Rosamond, CA 93560",
+    "Calhoun 29":                      "Hesperia, CA 92345",
 
     # New Mexico
-    "Mesa Del Sol":                    (35.0117, -106.6511),  # Albuquerque, NM
-    "Los Senderos":                    (35.2500, -106.7000),  # NM area
+    "Mesa Del Sol":                    "Mesa del Sol, Albuquerque, NM 87105",
+    "Los Senderos":                    "Albuquerque, NM 87121",
 
     # Colorado
-    "Mead (WCR 34 & Hwy 25)":         (40.2344, -104.9972),  # Mead, CO
+    "Mead (WCR 34 & Hwy 25)":         "Mead, CO 80542",
 }
 
 
@@ -209,16 +204,9 @@ def distance_and_direction(origin, dest):
 # ---------------------------------------------------------------------------
 def geocode_property(entry) -> Optional[tuple]:
     """
-    Return (lat, lon) for a property registry entry.
-
-    entry can be:
-      - (lat, lon) tuple  → returned immediately, no network call needed
-      - "address string"  → tried in order: Google Geocoding API, then Nominatim
+    Return (lat, lon) for a property address string.
+    Tries Google Geocoding API first, then Nominatim as fallback.
     """
-    # Hardcoded coords — instant, no network needed
-    if isinstance(entry, tuple) and len(entry) == 2:
-        return entry
-
     address = entry
 
     # Try Google Geocoding API first (if key available)
@@ -458,7 +446,7 @@ def build_geojson(records, property_name, property_coords):
     }
 
 
-def export_csv(records, property_name, filepath):
+def export_csv(records, property_name, property_coords, filepath):
     fieldnames = [
         "name", "category", "address",
         "latitude", "longitude",
@@ -468,13 +456,13 @@ def export_csv(records, property_name, filepath):
     with open(filepath, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
-        # Write subject property first
+        # Write subject property first (with coords so Felt can plot it)
         writer.writerow({
             "name":           f"⭐ {property_name} (Subject)",
             "category":       "Subject Property",
             "address":        "",
-            "latitude":       "",
-            "longitude":      "",
+            "latitude":       property_coords[0],
+            "longitude":      property_coords[1],
             "distance_miles": 0,
             "direction":      "—",
             "distance_label": "Subject Property",
@@ -521,10 +509,7 @@ def run(property_name: str, radius_miles: float = 3.0):
 
     # Step 2 — Geocode (or use hardcoded coords directly)
     entry = PROPERTY_REGISTRY.get(property_name) or address
-    if isinstance(entry, tuple):
-        print(f"  Coords:    hardcoded ({entry[0]:.5f}, {entry[1]:.5f}) ...", end=" ", flush=True)
-    else:
-        print(f"  Geocoding: {entry} ...", end=" ", flush=True)
+    print(f"  Geocoding: {entry} ...", end=" ", flush=True)
     coords = geocode_property(entry)
     if not coords:
         print("FAILED")
@@ -591,7 +576,7 @@ def run(property_name: str, radius_miles: float = 3.0):
     with open(geojson_path, "w", encoding="utf-8") as f:
         json.dump(geojson_data, f, indent=2)
 
-    export_csv(deduped, property_name, csv_path)
+    export_csv(deduped, property_name, coords, csv_path)
 
     # Step 6 — Print summary table
     print(f"\n{'─'*60}")
