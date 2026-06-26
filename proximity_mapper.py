@@ -250,8 +250,8 @@ def load_project_master() -> list:
 # ---------------------------------------------------------------------------
 # CONFIG READER
 # ---------------------------------------------------------------------------
-def load_categories() -> list:
-    """Load categories from data/config.json. Exits if file is missing or invalid."""
+def load_config() -> dict:
+    """Load and return the full config.json. Exits if file is missing or invalid."""
     if not os.path.exists(CONFIG_PATH):
         print(f"\n  ✗ config.json not found at {CONFIG_PATH}")
         print(f"    Add data/config.json to define your search categories.")
@@ -260,14 +260,29 @@ def load_categories() -> list:
     try:
         with open(CONFIG_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        cats = data.get("search_categories", [])
-        if not cats:
+        if not data.get("search_categories"):
             print(f"  ✗ config.json has no search_categories defined.")
             sys.exit(1)
-        return cats
+        return data
     except Exception as e:
         print(f"  ✗ Could not read config.json: {e}")
         sys.exit(1)
+
+
+def load_categories() -> list:
+    """Load search categories from config.json."""
+    return load_config().get("search_categories", [])
+
+
+def load_settings() -> dict:
+    """Load optional settings from config.json with sensible fallbacks."""
+    settings = load_config().get("settings", {})
+    return {
+        "default_radius_miles":          settings.get("default_radius_miles", 5.0),
+        "summary_results_per_category":  settings.get("summary_results_per_category", 10),
+        "geocoding_timeout_seconds":     settings.get("geocoding_timeout_seconds", 10),
+        "places_request_delay_seconds":  settings.get("places_request_delay_seconds", 0.15),
+    }
 
 # ---------------------------------------------------------------------------
 # DIRECTION HELPERS
@@ -305,7 +320,7 @@ def geocode_address(address: str) -> Optional[tuple]:
             resp = requests.get(
                 "https://maps.googleapis.com/maps/api/geocode/json",
                 params={"address": address, "key": api_key},
-                timeout=10,
+                timeout=load_settings()["geocoding_timeout_seconds"],
             )
             data = resp.json()
             if data.get("status") == "OK":
@@ -368,7 +383,7 @@ def search_google_places(lat, lon, radius_m, google_types, api_key):
                 if pid not in seen_ids:
                     seen_ids.add(pid)
                     results.append(r)
-            time.sleep(0.15)
+            time.sleep(load_settings()["places_request_delay_seconds"])
         except Exception as e:
             print(f"\n  ⚠ Google Places error ({ptype}): {e}")
 
@@ -628,7 +643,7 @@ def run(property_name: str, properties: list, categories: list, radius_miles: fl
         if not rows:
             continue
         print(f"\n  {icon}  {label.upper()}  ({len(rows)} places)")
-        for r in rows[:10]:
+        for r in rows[:load_settings()["summary_results_per_category"]]:
             print(f"    {r['name'][:40]:<40}  {r['distance_label']}")
 
     # Export
@@ -671,7 +686,7 @@ def main():
         """),
     )
     parser.add_argument("--property", "-p", type=str, default=None)
-    parser.add_argument("--radius",   "-r", type=float, default=3.0)
+    parser.add_argument("--radius",   "-r", type=float, default=load_settings()["default_radius_miles"])
     parser.add_argument("--list-properties", "-l", action="store_true")
     args = parser.parse_args()
 
@@ -722,7 +737,8 @@ def main():
             else:
                 args.property = choice
 
-        radius_input = input(f"Search radius in miles [default: {args.radius}]: ").strip()
+        default_r = load_settings()["default_radius_miles"]
+        radius_input = input(f"Search radius in miles [default: {default_r}]: ").strip()
         if radius_input:
             try:
                 args.radius = float(radius_input)
