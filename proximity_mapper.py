@@ -732,6 +732,102 @@ def lookup_nearby_highways(lat: float, lon: float, api_key: str,
     records.sort(key=lambda x: x["distance_miles"])
     return records
 
+
+def extract_highways_from_records(records: list, lat: float, lon: float,
+                                  color: str = "#717D7E") -> list:
+    """
+    Extract named highways and major roads from the addresses of already-found
+    businesses. This is reliable because Google always includes road names in
+    addresses (e.g. "103 West US Highway 80, Forney").
+    Returns deduplicated highway records sorted by distance.
+    """
+    import re
+    category = "Transportation & Infrastructure"
+    icon = "🛣️"
+
+    # Patterns to extract highway names from addresses
+    HIGHWAY_PATTERNS = [
+        # Interstate: "Interstate 20", "I-20", "I 20"
+        (r"\bInterstate\s+(\d+[A-Z]?)\b", "Interstate"),
+        (r"\bI-(\d+[A-Z]?)\b", "Interstate"),
+        # US Highway: "US Highway 80", "US-80", "U.S. 80"
+        (r"\bUS(?:\s+|-)Highway\s+(\d+[A-Z]?)\b", "US Highway"),
+        (r"\bU\.S\.\s+(\d+[A-Z]?)\b", "US Highway"),
+        (r"\bUS-(\d+[A-Z]?)\b", "US Highway"),
+        # State routes
+        (r"\bState\s+Highway\s+(\d+[A-Z]?)\b", "State Highway"),
+        (r"\bState\s+Route\s+(\d+[A-Z]?)\b", "State Route"),
+        (r"\bSH-(\d+[A-Z]?)\b", "State Highway"),
+        (r"\bTX-(\d+[A-Z]?)\b", "State Highway"),
+        (r"\bAZ-(\d+[A-Z]?)\b", "State Highway"),
+        (r"\bCA-(\d+[A-Z]?)\b", "State Highway"),
+        (r"\bCO-(\d+[A-Z]?)\b", "State Highway"),
+        (r"\bNM-(\d+[A-Z]?)\b", "State Highway"),
+        # Farm to Market
+        (r"\bFarm\s+to\s+Market\s+Road\s+(\d+[A-Z]?)\b", "Farm to Market Road"),
+        (r"\bFM\s+(\d+[A-Z]?)\b", "Farm to Market Road"),
+        (r"\bFM-(\d+[A-Z]?)\b", "Farm to Market Road"),
+        # County Road
+        (r"\bCounty\s+Road\s+(\d+[A-Z]?)\b", "County Road"),
+        (r"\bCR\s+(\d+[A-Z]?)\b", "County Road"),
+    ]
+
+    # Track which highways we've seen and which records mention them
+    highway_mentions = {}  # road_label -> list of (dist, lat, lon)
+
+    for r in records:
+        addr = r.get("address", "") + " " + r.get("notes", "")
+        for pattern, road_type in HIGHWAY_PATTERNS:
+            matches = re.findall(pattern, addr, re.IGNORECASE)
+            for num in matches:
+                if road_type == "Interstate":
+                    label = f"I-{num}"
+                elif road_type == "US Highway":
+                    label = f"US-{num}"
+                elif road_type in ("State Highway", "State Route"):
+                    label = f"State Highway {num}"
+                elif road_type == "Farm to Market Road":
+                    label = f"FM {num}"
+                elif road_type == "County Road":
+                    label = f"CR {num}"
+                else:
+                    label = f"{road_type} {num}"
+
+                if label not in highway_mentions:
+                    highway_mentions[label] = {"road_type": road_type, "dists": []}
+                highway_mentions[label]["dists"].append(r["distance_miles"])
+
+    if not highway_mentions:
+        return []
+
+    # Build highway records — use the minimum distance from all businesses on that road
+    highway_records = []
+    seen_labels = set()
+    for label, info in highway_mentions.items():
+        if label in seen_labels:
+            continue
+        seen_labels.add(label)
+        min_dist = round(min(info["dists"]), 2)
+        count = len(info["dists"])
+        highway_records.append({
+            "name":           label,
+            "category":       category,
+            "icon":           icon,
+            "color":          color,
+            "address":        f"{count} business{'es' if count > 1 else ''} on this road within radius",
+            "latitude":       lat,
+            "longitude":      lon,
+            "distance_miles": min_dist,
+            "direction":      "N/A",
+            "distance_label": f"~{min_dist} mi (nearest business on road)",
+            "rating":         "",
+            "source":         "Derived from Google Places addresses",
+            "notes":          info["road_type"],
+        })
+
+    highway_records.sort(key=lambda x: x["distance_miles"])
+    return highway_records
+
 # ---------------------------------------------------------------------------
 # MAIN RUNNER
 # ---------------------------------------------------------------------------
@@ -793,20 +889,18 @@ def run(property_name: str, properties: list, categories: list, radius_miles: fl
         print(f"{len(parsed)} found")
         all_records.extend(parsed)
 
-    # ── Highway & road lookup ─────────────────────────────────────
-    if use_google:
-        # Find the Transportation & Infrastructure category color
-        transport_color = "#717D7E"
-        for cat in categories:
-            if "transport" in cat["label"].lower() or "infrastructure" in cat["label"].lower():
-                transport_color = cat.get("color", "#717D7E")
-                break
-        print(f"\n  Searching: 🛣️  Highways & Roads ...", end=" ", flush=True)
-        highway_records = lookup_nearby_highways(
-            coords[0], coords[1], api_key, radius_miles, transport_color
-        )
-        print(f"{len(highway_records)} found")
-        all_records.extend(highway_records)
+    # ── Highway & road extraction from business addresses ─────────
+    transport_color = "#717D7E"
+    for cat in categories:
+        if "transport" in cat["label"].lower() or "infrastructure" in cat["label"].lower():
+            transport_color = cat.get("color", "#717D7E")
+            break
+    print(f"\n  Searching: 🛣️  Highways & Roads ...", end=" ", flush=True)
+    highway_records = extract_highways_from_records(
+        all_records, coords[0], coords[1], transport_color
+    )
+    print(f"{len(highway_records)} found")
+    all_records.extend(highway_records)
 
     # De-duplicate by (name, rounded lat/lon)
     seen, deduped = set(), []
